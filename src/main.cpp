@@ -5,13 +5,20 @@
 #include "derivation_table.h"
 #include "derive.h"
 
-#define ERROR "\u001b[31;1mERROR:\u001b[37;0m "
+#define ERROR "\e[31;1mCRITICAL ERROR:\u001b[37;0m "
+#define WARNING "\e[33;1mWARNING:\u001b[37;0m "
+#define INPUT "\e[36;1m> \u001b[37;0m"
 
 namespace arg_parse = boost::program_options;
 
 template<typename T>
+void warn(T warning_message) {
+    std::cerr << WARNING << warning_message << std::endl;
+}
+
+template<typename T>
 void die(T error_message) {
-    std::cout << ERROR << error_message << std::endl;
+    std::cerr << ERROR << error_message << std::endl;
     std::exit(-1);
 }
 
@@ -35,7 +42,6 @@ int main(int argc, char **argv) {
     } catch (boost::program_options::error &e) {
         die(e.what());
     }
-
     arg_parse::notify(args);
 
     if (args.count("help")) {
@@ -49,22 +55,41 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // Warnings
+    if (not args.count("input") and not args.count("input-file"))
+        warn("text file not specified, string will be acquired via stdin");
+    if (not args.count("output"))
+        warn("output file not specified, tree will be placed to stdout");
+
     // Init grammar
     grammar _grammar;
     if (args.count("grammar"))
-        std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar;
+        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
+        catch (std::exception &e) { die(e.what()); }
     else
         die("grammar file not specified");
+
     // Init text
     std::string text;
     if (args.count("input-file")) {
         std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> text;
-    } else if (args.count("input")){
+    } else if (args.count("input")) {
         text = args["input"].as<std::string>();
     } else {
-        std::cout << "Enter string to test" << std::endl;
+        std::cerr << INPUT;
         std::cin >> text;
     }
-    // TODO
+
+    // Build derivation
+    derivation_table table = build_derivation(_grammar, _grammar.convert_text(text));
+    if (not table[{0, table.size()}].count(_grammar.get_start_symbol()))
+        die("provided string cannot be derived with given grammar");
+
+    // Write tree
+    if (args.count("output")) {
+        std::ofstream(args["output"].as<std::string>(), std::ios::out) << table;
+    } else {
+        std::cout << std::endl << table << std::endl;
+    }
     return 0;
 }
