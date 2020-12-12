@@ -29,13 +29,13 @@ public:
     int size() const;
 
     // Задаём алфавит
-    void set_alphabet(alphabet _alphabet);
+    void set_alphabet(alphabet &labels);
 
     // Возвращаем ссылку на список возможных выводов для маркера подстроки
     std::map<int, parse_tree_node> &operator[](substr_marker marker);
 
     // Выводим дерево в формате DOT в произвольный поток. Используем алфавит, заданный через метод выше
-    friend std::ostream &operator<<(std::ostream &out, derivation_table table) const;
+    friend std::ostream &operator<<(std::ostream &out, derivation_table table);
 };
 
 #endif  // _DERIVATION_TABLE_H
