@@ -39,6 +39,12 @@ public:
     // Возвращает правила, не имебщие операторов контекста
     std::vector<rule> no_context_rules() const;
 
+    // Переводит строку в список в соответствии со словарём
+    std::vector<int> convert_text(const std::string &text) const;
+
+    // Возвращает числовое представление стартового символа
+    int get_start_symbol() const;
+
     // Возвращает сопоставление чисел строкам в описании символов
     alphabet get_alphabet() const;
 
