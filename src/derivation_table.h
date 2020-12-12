@@ -20,22 +20,26 @@ struct parse_tree_node {
 
 
 class derivation_table {
+private:
+    std::map<substr_marker, std::map<int, parse_tree_node>> substr_derivations;
+    int _size;
+    alphabet _alphabet;
     // TODO
 public:
     // Инициализируем пустую таблицу по строке
-    derivation_table(const std::vector<int> &string);
+    explicit derivation_table(const std::vector<int> &string);
 
     // Размер кроны
     int size() const;
 
     // Задаём алфавит
-    void set_alphabet(alphabet &labels);
+    void set_alphabet(const alphabet &labels);
 
     // Возвращаем ссылку на список возможных выводов для маркера подстроки
     std::map<int, parse_tree_node> &operator[](substr_marker marker);
 
     // Выводим дерево в формате DOT в произвольный поток. Используем алфавит, заданный через метод выше
-    friend std::ostream &operator<<(std::ostream &out, derivation_table table);
+    friend std::ostream &operator<<(std::ostream &out, const derivation_table &table);
 };
 
 #endif  // _DERIVATION_TABLE_H
