@@ -29,7 +29,14 @@ struct rule {
 typedef std::map<int, std::string> alphabet;
 
 class grammar {
-    // TODO
+    std::map<std::string, int> non_terminals;
+    std::map<char, int> terminals;
+    int start = 1;
+    std::vector<rule> rules;
+
+    int add_terminal(char t);
+
+    int add_non_terminal(std::string nt);
 public:
     grammar();
 
@@ -53,6 +60,8 @@ public:
 
     // Проверка на бинарную нормальную форму
     bool is_binary_normal_form() const;
+
+    void build_interactive();
 };
 
 #endif  // _GRAMMAR_H
