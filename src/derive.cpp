@@ -6,7 +6,7 @@
 
 bool algorithm_pass(derivation_table &table, const std::vector<rule> &rules) {
     bool needs_repetition = false;
-    for (int len = 1; len < table.size(); ++len) {
+    for (int len = 1; len <= table.size(); ++len) {
         for (int i = 0; i + len - 1 < table.size(); ++i) {
             for (const auto &rule : rules) {
                 if (rule.productions.empty())
@@ -15,17 +15,19 @@ bool algorithm_pass(derivation_table &table, const std::vector<rule> &rules) {
                 parse_tree_node node;
                 for (const auto &production : rule.productions) {
                     if (production.size() == 1) {
-                        if (table[{i, i + len}].count(production[0]) != 0)
-                            node.productions.insert({{production[0], {i, i + len}}});
-                        else
+                        if (table[std::make_pair(i, i + len)].count(production[0])) {
+                            std::vector<var_tree_ref> new_pr = {var_tree_ref(production[0], {i, i + len})};
+                            node.productions.insert(new_pr);
+                        } else
                             rule_applies = false; // rule does not match
                     } else if (production.size() == 2) {
                         bool flag = false;
                         for (int s_len = 1; s_len < len; ++s_len) {
-                            if (table[{i, i + s_len}].count(production[0]) != 0 and
-                                table[{i + s_len, i + len}].count(production[0]) != 0) {
-                                node.productions.insert({{production[0], {i,         i + s_len}},
-                                                         {production[1], {i + s_len, i + len}}});
+                            if (table[std::make_pair(i, i + s_len)].count(production[0]) and
+                                table[std::make_pair(i + s_len, i + len)].count(production[1])) {
+                                std::vector<var_tree_ref> new_pr = {{production[0], {i,         i + s_len}},
+                                                                    {production[1], {i + s_len, i + len}}};
+                                node.productions.insert(new_pr);
                                 flag = true;
                             }
                         }
@@ -48,13 +50,13 @@ bool algorithm_pass(derivation_table &table, const std::vector<rule> &rules) {
                             context_marker = {i, table.size()};
                             break;
                     }
-                    if (context.first.size() == 1 and table[context_marker].count(context.first[0]) != 0) {
+                    if (context.first.size() == 1 and table[context_marker].count(context.first[0])) {
                         node.contexts.insert({context.first[0], context_marker});
                     } else rule_applies = false;
                 }
                 if (rule_applies) {
-                    if (table[{i, i + len}].count(rule.origin) != 0) {
-                        table[{i, i + len}][rule.origin] = node;
+                    if (not table[std::make_pair(i, i + len)].count(rule.origin)) {
+                        table[std::make_pair(i, i + len)][rule.origin] = node;
                         if (i == 0 or i + len == table.size())
                             needs_repetition = true;
                     }

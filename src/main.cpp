@@ -35,7 +35,6 @@ int main(int argc, char **argv) {
     arg_parse::positional_options_description pos_desc;
     pos_desc.add("input", 1);
 
-
     arg_parse::variables_map args{};
     try {
         arg_parse::store(arg_parse::command_line_parser(argc, argv).options(desc).positional(pos_desc).run(), args);
@@ -51,7 +50,7 @@ int main(int argc, char **argv) {
     }
     if (args.count("version")) {
         std::cout << NAME << " v" << VERSION << std::endl
-                  << "Copyright (C) 2020 Yxbcvn410's team" << std::endl;
+                  << "Copyright (C) 2020 Yxbcvn410 and his missing team" << std::endl;
         return 1;
     }
 
@@ -63,11 +62,16 @@ int main(int argc, char **argv) {
 
     // Init grammar
     grammar _grammar;
-    if (args.count("grammar"))
-        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
-        catch (std::exception &e) { die(e.what()); }
-    else
-        die("grammar file not specified");
+
+
+    warn("grammar will be entered in interactive mode");
+    _grammar.build_interactive();
+
+//    if (args.count("grammar"))
+//        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
+//        catch (std::exception &e) { die(e.what()); }
+//    else
+//        die("grammar file not specified");
 
     // Init text
     std::string text;
@@ -81,13 +85,22 @@ int main(int argc, char **argv) {
     }
 
     // Build derivation
-    derivation_table table = build_derivation(_grammar, _grammar.convert_text(text));
+    std::vector<int> string;
+    try {
+        string = _grammar.convert_text(text);
+    } catch (std::exception &e) {
+        die("failed to resolve some symbols of string to parse");
+    }
+    derivation_table table = build_derivation(_grammar, string);
+    table.set_start(_grammar.get_start_symbol());
+    table.set_alphabet(_grammar.get_alphabet());
     if (not table[{0, table.size()}].count(_grammar.get_start_symbol()))
         die("provided string cannot be derived with given grammar");
 
     // Write tree
     if (args.count("output")) {
-        std::ofstream(args["output"].as<std::string>(), std::ios::out) << table;
+        std::ofstream stream(args["output"].as<std::string>(), std::ios::out);
+        stream << table;
     } else {
         std::cout << std::endl << table << std::endl;
     }

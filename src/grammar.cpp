@@ -6,7 +6,7 @@
 #include "grammar.h"
 
 grammar::grammar() {
-    start = 0;
+    start = 1;
 }
 
 std::vector<rule> grammar::all_rules() const {
@@ -50,7 +50,7 @@ bool grammar::is_binary_normal_form() const {
 }
 
 void grammar::build_interactive() {
-    // TODO Temporary solution
+    // TODO Temporary solution, get rid of it in major releases
     using namespace std;
     cout << "Start symbol?" << endl;
     std::string word;
@@ -59,9 +59,12 @@ void grammar::build_interactive() {
     cout << "Note: every single-character word is treated as terminal" << endl;
     while (true) {
         cout
-                << R"(Define a rule, one operator per line, print "end" to complete rule, "done" to finish. Origin symbol?)";
+                << R"(Define a rule, one operator per line, print "end" to complete rule, "done" to finish. Origin symbol?)"
+                << endl;
         rule _rule{};
         getline(cin, word);
+        if (word == "done")
+            return;
         _rule.origin = add_non_terminal(word);
         std::string line;
         while (getline(cin, line)) {
@@ -108,12 +111,12 @@ void grammar::build_interactive() {
     }
 }
 
-std::istream &operator>>(std::istream &stream, grammar &_grammar) {
+std::istream &operator>>(std::istream &in, grammar &_grammar) {
     // TODO
-    return stream;
+    return in;
 }
 
-int grammar::add_non_terminal(std::string nt) {
+int grammar::add_non_terminal(const std::string &nt) {
     int index = terminals.size() + non_terminals.size() + 1;
     if (not non_terminals.count(nt))
         non_terminals[nt] = index;

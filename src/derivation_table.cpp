@@ -13,7 +13,7 @@ derivation_table::derivation_table(const std::vector<int> &string) {
         for (int j = i + 2; j <= string.size(); ++j)
             this->substr_derivations[{i, j}] = {};
     for (int i = 0; i < string.size(); ++i)
-        this->substr_derivations[{i, i + 1}][i] = {};
+        this->substr_derivations[{i, i + 1}][string[i]] = {};
 }
 
 int derivation_table::size() const {
@@ -68,7 +68,8 @@ std::ostream &operator<<(std::ostream &out, derivation_table &table) {
                     queue.push(production[0]);
                     defined.insert(production[0]);
                 } else {
-                    out << "\t\n\tsubgraph " << generate_name(ref) << "_" << prod_counter << " {\n";
+                    out << "\t\n\tsubgraph cluster_" << generate_name(ref) << "_" << prod_counter << " {\n"
+                    << "\t\tcolor=blue style=dashed\n";
                     for (auto iter = production.rbegin(); iter != production.rend(); iter++) {
                         out << "\t\t" << table.generate_def(*iter);
                         queue.push(*iter);

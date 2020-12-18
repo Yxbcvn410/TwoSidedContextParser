@@ -29,14 +29,14 @@ struct rule {
 typedef std::map<int, std::string> alphabet;
 
 class grammar {
-    std::map<std::string, int> non_terminals;
     std::map<char, int> terminals;
-    int start = 1;
+    std::map<std::string, int> non_terminals;
     std::vector<rule> rules;
+    int start;
 
     int add_terminal(char t);
 
-    int add_non_terminal(std::string nt);
+    int add_non_terminal(const std::string &nt);
 public:
     grammar();
 
@@ -56,7 +56,7 @@ public:
     alphabet get_alphabet() const;
 
     // Считывает правила из потока
-    friend std::istream &operator>>(std::istream &stream, grammar &_grammar);
+    friend std::istream &operator>>(std::istream &in, grammar &_grammar);
 
     // Проверка на бинарную нормальную форму
     bool is_binary_normal_form() const;
