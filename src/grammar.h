@@ -11,6 +11,7 @@
 #include <map>
 
 enum context_type {
+    NONE,
     LEFT,
     RIGHT,
     LEFT_EXT,
@@ -23,7 +24,6 @@ typedef std::pair<production, context_type> context_operator;
 struct rule {
     int origin;
     std::set<context_operator> contexts;
-    std::set<production> productions;
 };
 
 typedef std::map<int, std::string> alphabet;
