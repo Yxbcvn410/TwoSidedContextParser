@@ -25,7 +25,7 @@ private:
     int _size, _start;
     alphabet _alphabet;
 
-    std::string generate_def(const var_tree_ref &ref, const std::string &label = "");
+    std::string generate_def(const var_tree_ref &ref, int index_helper, const std::string &label = "");
 
 public:
     // Инициализируем пустую таблицу по строке

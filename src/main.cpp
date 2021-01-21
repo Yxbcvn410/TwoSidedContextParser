@@ -18,7 +18,7 @@ void warn(T warning_message) {
 
 template<typename T>
 void die(T error_message) {
-    std::cerr << ERROR << error_message << std::endl;
+    std::cerr << ERROR << error_message << "\nThe program will be terminated immediately" << std::endl;
     std::exit(-1);
 }
 
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     }
     if (args.count("version")) {
         std::cout << NAME << " v" << VERSION << std::endl
-                  << "Copyright (C) 2020 Yxbcvn410 and his missing team" << std::endl;
+                  << "Copyright (C) 2020-2021 Yxbcvn410 and his missing team" << std::endl;
         return 1;
     }
 
@@ -63,8 +63,12 @@ int main(int argc, char **argv) {
     // Init grammar
     grammar _grammar;
     if (args.count("grammar"))
-        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
-        catch (std::exception &e) { die(e.what()); }
+        try {
+            auto grammar_in = std::ifstream(args["grammar"].as<std::string>(), std::ios::in);
+            if (grammar_in.bad() or grammar_in.fail())
+                die("grammar file missing or corrupt");
+            grammar_in >> _grammar;
+        } catch (std::exception &e) { die(e.what()); }
     else
         die("grammar file not specified");
     if (not _grammar.is_binary_normal_form())
@@ -73,7 +77,10 @@ int main(int argc, char **argv) {
     // Init text
     std::string text;
     if (args.count("input-file")) {
-        std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> text;
+        auto text_in = std::ifstream(args["input-file"].as<std::string>(), std::ios::in);
+        if (text_in.bad() or text_in.fail())
+            die("input text file missing or corrupt");
+        text_in >> text;
     } else if (args.count("input")) {
         text = args["input"].as<std::string>();
     } else {

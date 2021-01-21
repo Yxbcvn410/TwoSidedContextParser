@@ -60,8 +60,6 @@ public:
 
     // Проверка на бинарную нормальную форму
     bool is_binary_normal_form() const;
-
-    void build_interactive();
 };
 
 #endif  // _GRAMMAR_H

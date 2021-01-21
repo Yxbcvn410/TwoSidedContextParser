@@ -186,7 +186,7 @@ std::vector<word> get_words(std::istream &in) {
 
 std::logic_error parse_error(const std::string &err, const word &_word) {
     std::ostringstream oss;
-    oss << "grammar parsing failed\n" << err << "\nat ln " << _word.ln << ", col " << _word.col << " of <grammar>";
+    oss << "syntax error in grammar\n" << err << "\nat ln " << _word.ln << ", col " << _word.col << " of <grammar>";
     return std::logic_error(oss.str().c_str());
 }
 
