@@ -1,0 +1,20 @@
+grammar(S);
+S = A MR;
+MR = M C;
+M = B & <= L & >= R;
+
+L = AA LL;
+LL = L BB;
+L = AA BB;
+R = BB RR;
+RR = R CC;
+R = BB CC;
+A = A A;
+B = B B;
+C = C C;
+A = "a";
+B = "b";
+C = "c";
+AA = "a";
+BB = "b";
+CC = "c";
