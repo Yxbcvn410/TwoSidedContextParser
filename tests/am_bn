@@ -1,0 +1,6 @@
+grammar(S);
+S = A B;
+A = A A;
+B = B B;
+A = "a";
+B = "b";

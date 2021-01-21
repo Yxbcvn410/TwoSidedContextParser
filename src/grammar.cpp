@@ -45,8 +45,8 @@ alphabet grammar::get_alphabet() const {
 }
 
 bool grammar::is_binary_normal_form() const {
-    for (auto r : rules) {
-        for (auto c : r.contexts) {
+    for (const auto& r : rules) {
+        for (const auto& c : r.contexts) {
             if (c.second == NONE) {
                 if (c.first.empty() or c.first.size() > 2)
                     return false;
@@ -83,48 +83,76 @@ struct word {
 
 std::vector<word> get_words(std::istream &in) {
     std::vector<word> words;
-    int ln = 1, col = 0;
-    std::set<char> special_chars = {',', ':', ';', '=', '<', '>', '|', '(', ')', '~'};
-    std::set<char> delimiters = {' ', '\n', '\r'};
+    int ln = 1, col = 1;
+    std::vector<std::set<char>> special_char_groups = {{';'},
+                                                       {',', ':', '=', '<', '>', '|', '(', ')', '~', '&'}};
+    int sp_char_group = -1;
+    std::set<char> delimiters = {' ', '\n', '\r', -1};
     char next;
     parse_mode mode = AWAIT;
     std::string current;
-    while (in >> next) {
+    while (not in.eof()) {
+        next = in.get();
+        parse_mode snap;
         bool word_end = false;
-
         if (mode == QUOTED) {
-            current += next;
             if (next == '"' or next == '\n') {
                 word_end = true;
+                snap = mode;
                 if (next == '"')
                     current += next;
                 mode = AWAIT;
             }
         } else if (next == '"') {
-            if (mode == AWAIT)
+            if (mode == AWAIT) {
+                col += current.size();
                 current = "";
-            else
+            }
+            else {
                 word_end = true;
+                snap = mode;
+            }
             mode = QUOTED;
         } else if (mode == AWAIT) {
-            if (special_chars.count(next)) {
+            sp_char_group = -1;
+            for (int i = 0; i < special_char_groups.size(); i++)
+                if (special_char_groups[i].count(next))
+                    sp_char_group = i;
+            if (sp_char_group != -1) {
+                col += current.size();
                 current = "";
                 mode = SPECIAL;
             } else if (delimiters.count(next)) {
                 ln++;
             } else {
+                col += current.size();
                 current = "";
                 mode = WORD;
             }
+        } else if (delimiters.count(next)) {
+            word_end = true;
+            snap = mode;
+            mode = AWAIT;
         } else if (mode == WORD) {
-            if (delimiters.count(next) or special_chars.count(next)) {
+            sp_char_group = -1;
+            for (int i = 0; i < special_char_groups.size(); i++)
+                if (special_char_groups[i].count(next))
+                    sp_char_group = i;
+            if (delimiters.count(next) or sp_char_group != -1) {
                 word_end = true;
+                snap = mode;
                 mode = delimiters.count(next) ? AWAIT : SPECIAL;
             }
         } else if (mode == SPECIAL) {
-            if (not special_chars.count(next)) {
+            int new_sp_char_group = -1;
+            for (int i = 0; i < special_char_groups.size(); i++)
+                if (special_char_groups[i].count(next))
+                    new_sp_char_group = i;
+            if (sp_char_group != new_sp_char_group) {
                 word_end = true;
-                mode = delimiters.count(next) ? AWAIT : WORD;
+                snap = mode;
+                sp_char_group = new_sp_char_group;
+                mode = delimiters.count(next) ? AWAIT : sp_char_group == -1 ? WORD : SPECIAL;
             }
         }
 
@@ -133,14 +161,14 @@ std::vector<word> get_words(std::istream &in) {
             _word.text = current;
             _word.ln = ln;
             _word.col = col;
-            _word.word_type = SPECIAL;
+            _word.word_type = snap;
+            col += current.size();
             current = "";
             words.push_back(_word);
-            col += current.size();
         }
         if (next == '\n') {
             ln++;
-            col = 0;
+            col = 1;
         }
         current += next;
     }
@@ -149,39 +177,24 @@ std::vector<word> get_words(std::istream &in) {
         _word.text = current;
         _word.ln = ln;
         _word.col = col;
-        _word.word_type = SPECIAL;
+        _word.word_type = mode;
         current = "";
         words.push_back(_word);
     }
     return words;
 }
 
-class parse_error : std::exception {
-protected:
-    std::string err;
-    int ln, col;
-public:
-    parse_error(const std::string &err, const word& _word) {
-        this->err = err;
-        ln = _word.ln;
-        col = _word.col;
-    }
+std::logic_error parse_error(const std::string &err, const word &_word) {
+    std::ostringstream oss;
+    oss << "grammar parsing failed\n" << err << "\nat ln " << _word.ln << ", col " << _word.col << " of <grammar>";
+    return std::logic_error(oss.str().c_str());
+}
 
-    const char *what() {
-        std::ostringstream oss;
-        oss << "Grammar parsing error\n" << err << "\nat ln " << ln << ", col " << col << " of <grammar>";
-        return oss.str().c_str();
-    }
-};
-
-class unexpected_symbol : parse_error {
-public:
-    unexpected_symbol(const word& _word) : parse_error("", _word) {
-        std::ostringstream oss;
-        oss << "Unexpected symbol '" << _word.text << "'";
-        err = oss.str();
-    }
-};
+std::logic_error unexpected_symbol(const word &_word) {
+    std::ostringstream oss;
+    oss << "Unexpected symbol '" << _word.text << "'";
+    return parse_error(oss.str(), _word);
+}
 
 enum rule_parse_mode {
     BEGIN,
@@ -195,9 +208,9 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
     auto words = get_words(stream);
     rule_parse_mode mode = BEGIN;
     bool lhs = true, parenthesis = false;
-    context_type context;
+    context_type context = NONE;
     std::vector<int> letters;
-    rule building_rule;
+    rule building_rule = {};
     std::string terminal_name;
     for (const auto &_word : words) {
         if (mode == BEGIN) {
@@ -214,10 +227,10 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
                     throw unexpected_symbol(_word);
                 parenthesis = false;
             } else if (parenthesis) {
-                if (_word.word_type == WORD)
-                    _grammar.start = _grammar.add_non_terminal(_word.text);
-                else if (_grammar.start != 0)
+                if (_grammar.start != 0)
                     throw parse_error("Invalid axiom definition", _word);
+                else if (_word.word_type == WORD)
+                    _grammar.start = _grammar.add_non_terminal(_word.text);
                 else
                     throw unexpected_symbol(_word);
             } else if (_word == ";") {
@@ -231,7 +244,7 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
             if (lhs) {
                 if (_word == "=")
                     lhs = false;
-                else if (building_rule.origin != 0)
+                else if (building_rule.origin == 0)
                     building_rule.origin = _grammar.add_non_terminal(_word.text);
                 else
                     throw unexpected_symbol(_word);
@@ -253,10 +266,12 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
                 }
                 if (_word.word_type == WORD)
                     letters.push_back(_grammar.add_non_terminal(_word.text));
-                else if (_word.word_type == QUOTED)
-                    for (char c : _word.text)
-                        letters.push_back(_grammar.add_terminal(c));
-                else if (_word == "&" or _word == ";") {
+                else if (_word.word_type == QUOTED) {
+                    if (_word.text.empty() or _word.text[0] != '"' or _word.text.back() != '"')
+                        throw parse_error("Closing quote missing", _word);
+                    for (int i = 1; i < _word.text.size() - 1; i++)
+                        letters.push_back(_grammar.add_terminal(_word.text[i]));
+                } else if (_word == "&" or _word == ";") {
                     building_rule.contexts.insert({letters, context});
                     context = NONE;
                     letters = {};
@@ -274,6 +289,7 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
             } else if (_word.word_type == WORD) {
                 mode = RULE_DEF;
                 building_rule = {};
+                building_rule.origin = _grammar.add_non_terminal(_word.text);
             } else
                 throw unexpected_symbol(_word);
         }
@@ -283,7 +299,7 @@ std::istream &operator>>(std::istream &stream, grammar &_grammar) {
     return stream;
 }
 
-int grammar::add_non_terminal(std::string nt) {
+int grammar::add_non_terminal(const std::string &nt) {
     int index = terminals.size() + non_terminals.size() + 1;
     if (not non_terminals.count(nt))
         non_terminals[nt] = index;

@@ -76,7 +76,7 @@ std::ostream &operator<<(std::ostream &out, derivation_table &table) {
                         defined.insert(*iter);
                     }
                     prod_counter++;
-                    out << "\t}\n";
+                    out << "\t}\n\n";
                 }
             }
             for (const auto &node : production)

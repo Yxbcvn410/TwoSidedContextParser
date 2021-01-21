@@ -9,52 +9,57 @@ bool algorithm_pass(derivation_table &table, const std::vector<rule> &rules) {
     for (int len = 1; len <= table.size(); ++len) {
         for (int i = 0; i + len - 1 < table.size(); ++i) {
             for (const auto &rule : rules) {
-                if (rule.productions.empty())
-                    continue;
+                int productions = 0;
                 bool rule_applies = true;
                 parse_tree_node node;
-                for (const auto &production : rule.productions) {
-                    if (production.size() == 1) {
-                        if (table[std::make_pair(i, i + len)].count(production[0])) {
-                            std::vector<var_tree_ref> new_pr = {var_tree_ref(production[0], {i, i + len})};
-                            node.productions.insert(new_pr);
-                        } else
-                            rule_applies = false; // rule does not match
-                    } else if (production.size() == 2) {
-                        bool flag = false;
-                        for (int s_len = 1; s_len < len; ++s_len) {
-                            if (table[std::make_pair(i, i + s_len)].count(production[0]) and
-                                table[std::make_pair(i + s_len, i + len)].count(production[1])) {
-                                std::vector<var_tree_ref> new_pr = {{production[0], {i,         i + s_len}},
-                                                                    {production[1], {i + s_len, i + len}}};
-                                node.productions.insert(new_pr);
-                                flag = true;
-                            }
-                        }
-                        rule_applies &= flag;
-                    } else rule_applies = false; // Not binary normal form
-                }
                 for (const auto &context : rule.contexts) {
-                    substr_marker context_marker;
-                    switch (context.second) {
-                        case LEFT:
-                            context_marker = {0, i};
-                            break;
-                        case RIGHT:
-                            context_marker = {i + len, table.size()};
-                            break;
-                        case LEFT_EXT:
-                            context_marker = {0, i + len};
-                            break;
-                        case RIGHT_EXT:
-                            context_marker = {i, table.size()};
-                            break;
+                    if (context.second == NONE) {
+                        productions++;
+                        auto production = context.first;
+                        if (production.size() == 1) {
+                            if (table[std::make_pair(i, i + len)].count(production[0])) {
+                                std::vector<var_tree_ref> new_pr = {var_tree_ref(production[0], {i, i + len})};
+                                node.productions.insert(new_pr);
+                            } else
+                                rule_applies = false; // rule does not match
+                        } else if (production.size() == 2) {
+                            bool flag = false;
+                            for (int s_len = 1; s_len < len; ++s_len) {
+                                if (table[std::make_pair(i, i + s_len)].count(production[0]) and
+                                    table[std::make_pair(i + s_len, i + len)].count(production[1])) {
+                                    std::vector<var_tree_ref> new_pr = {{production[0], {i,         i + s_len}},
+                                                                        {production[1], {i + s_len, i + len}}};
+                                    if (not flag)
+                                        node.productions.insert(new_pr);
+                                    flag = true;
+                                }
+                            }
+                            rule_applies &= flag;
+                        } else rule_applies = false; // Not binary normal form
+                    } else {
+                        substr_marker context_marker;
+                        switch (context.second) {
+                            case LEFT:
+                                context_marker = {0, i};
+                                break;
+                            case RIGHT:
+                                context_marker = {i + len, table.size()};
+                                break;
+                            case LEFT_EXT:
+                                context_marker = {0, i + len};
+                                break;
+                            case RIGHT_EXT:
+                                context_marker = {i, table.size()};
+                                break;
+                            default:
+                                break; // This case label is in fact useless
+                        }
+                        if (context.first.size() == 1 and table[context_marker].count(context.first[0])) {
+                            node.contexts.insert({context.first[0], context_marker});
+                        } else rule_applies = false;
                     }
-                    if (context.first.size() == 1 and table[context_marker].count(context.first[0])) {
-                        node.contexts.insert({context.first[0], context_marker});
-                    } else rule_applies = false;
                 }
-                if (rule_applies) {
+                if (rule_applies and productions > 0) {
                     if (not table[std::make_pair(i, i + len)].count(rule.origin)) {
                         table[std::make_pair(i, i + len)][rule.origin] = node;
                         if (i == 0 or i + len == table.size())

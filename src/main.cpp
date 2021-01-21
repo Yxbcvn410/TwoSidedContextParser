@@ -62,16 +62,13 @@ int main(int argc, char **argv) {
 
     // Init grammar
     grammar _grammar;
-
-
-    warn("grammar will be entered in interactive mode");
-    _grammar.build_interactive();
-
-//    if (args.count("grammar"))
-//        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
-//        catch (std::exception &e) { die(e.what()); }
-//    else
-//        die("grammar file not specified");
+    if (args.count("grammar"))
+        try { std::ifstream(args["grammar"].as<std::string>(), std::ios::in) >> _grammar; }
+        catch (std::exception &e) { die(e.what()); }
+    else
+        die("grammar file not specified");
+    if (not _grammar.is_binary_normal_form())
+        die("grammar form is not binary normal");
 
     // Init text
     std::string text;
